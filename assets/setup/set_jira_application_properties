@@ -1,0 +1,19 @@
+#!/bin/bash
+
+sudo -u jira -H echo "jira.home=$JIRA_DATA_DIR" > /opt/jira/atlassian-jira/WEB-INF/classes/jira-application.properties
+
+# Configure reverse proxy
+if [ -n "$REVERSE_PROXY_CONTEXT_PATH" ]; then
+    sed 's/<Context path=""/<Context path="'"$(echo ${REVERSE_PROXY_CONTEXT_PATH} | sed -e 's/[\/&]/\\&/g')"'"/' -i ${JIRA_INST_DIR}/conf/server.xml
+fi
+
+if [ -n "$SSL_REVERSE_PROXY_NAME" ]; then
+    sed 's/disableUploadTimeout="true"\/>/disableUploadTimeout="true"\n                   secure="true"\/>/' -i ${JIRA_INST_DIR}/conf/server.xml
+    sed 's/disableUploadTimeout="true"/disableUploadTimeout="true"\n                   proxyPort="'"${SSL_REVERSE_PROXY_PORT}"'"/' -i ${JIRA_INST_DIR}/conf/server.xml
+    sed 's/disableUploadTimeout="true"/disableUploadTimeout="true"\n                   proxyName="'"$(echo ${SSL_REVERSE_PROXY_NAME} | sed -e 's/[\/&]/\\&/g')"'"/' -i ${JIRA_INST_DIR}/conf/server.xml
+    sed 's/disableUploadTimeout="true"/disableUploadTimeout="true"\n                   scheme="https"/' -i ${JIRA_INST_DIR}/conf/server.xml
+elif [ -n "$REVERSE_PROXY_NAME" ]; then
+    sed 's/disableUploadTimeout="true"\/>/disableUploadTimeout="true"\n                   proxyPort="'"${REVERSE_PROXY_PORT}"'"\/>/' -i ${JIRA_INST_DIR}/conf/server.xml
+    sed 's/disableUploadTimeout="true"/disableUploadTimeout="true"\n                   proxyName="'"$(echo ${REVERSE_PROXY_NAME} | sed -e 's/[\/&]/\\&/g')"'"/' -i ${JIRA_INST_DIR}/conf/server.xml
+fi
+

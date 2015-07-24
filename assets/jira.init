@@ -1,0 +1,163 @@
+#!/bin/bash
+
+# shutdown method
+shutdown() {
+    echo "Caught SIGTERM signal. Trying to stop JIRA..."
+    ${JIRA_INST_DIR}/bin/stop-jira.sh
+}
+
+# trap SIGTERM for clean exit
+trap shutdown 15
+
+## Basic variables
+JIRA_HOME="/home/jira"
+JIRA_DATA_DIR="/opt/jira-home"
+JIRA_INST_DIR="/opt/jira"
+JIRA_LOGS_DIR="${JIRA_INST_DIR}/logs"
+JIRA_TEMP_DIR="${JIRA_INST_DIR}/temp"
+JIRA_WORK_DIR="${JIRA_INST_DIR}/work"
+
+SETUP_DIR="/opt/jira-setup"
+SETUP_SCRIPTS_DIR="${SETUP_DIR}/setup"
+CONFIG_TEMPLATES_DIR="${SETUP_DIR}/config"
+
+## Database
+DB_TYPE=${DB_TYPE:-} # Currently only MySQL is supported
+DB_HOST=${DB_HOST:-}
+DB_PORT=${DB_PORT:-}
+DB_NAME=${DB_NAME:-}
+DB_USER=${DB_USER:-}
+DB_PASS=${DB_PASS:-}
+DB_POOL=${DB_POOL:-20}
+
+## Check if a mysql container has been linked
+if [ -n "${MYSQL_PORT_3306_TCP_ADDR}" ]; then
+    DB_TYPE=${DB_TYPE:-mysql}
+    DB_HOST=${DB_HOST:-${MYSQL_PORT_3306_TCP_ADDR}}
+    DB_PORT=${DB_PORT:-${MYSQL_PORT_3306_TCP_PORT}}
+fi
+
+## (SSL) Revers Proxy configuration
+SSL_REVERSE_PROXY_NAME=${SSL_REVERSE_PROXY_NAME:-}
+SSL_REVERSE_PROXY_PORT=${SSL_REVERSE_PROXY_PORT:-}
+REVERSE_PROXY_NAME=${REVERSE_PROXY_NAME:-}
+REVERSE_PROXY_PORT=${REVERSE_PROXY_PORT:-}
+REVERSE_PROXY_CONTEXT_PATH=${REVERSE_PROXY_CONTEXT_PATH:-}
+
+## Input validation
+# Check DB_HOST
+if [ -z "${DB_HOST}" ]; then
+    echo "ERROR: "
+    echo " Please configure the database connection."
+    echo " Cannot continue without a database. Aborting..."
+    exit 1
+fi
+
+# Check DB_TYPE
+case "${DB_TYPE}" in 
+    mysql)
+        DB_PORT=${DB_PORT:-3306}
+        ;;
+    *)
+        echo "ERROR: "
+        echo "  Currently only MySQL is supported as database type."
+        exit 1
+        ;;
+esac
+
+# Set default values for database
+DB_USER=${DB_USER:-jira}
+DB_NAME=${DB_NAME:-jira_production}
+
+# Check complete (SSL) Reverse Proxy configuration
+if [ -n "${SSL_REVERSE_PROXY_NAME}" -o -n "${SSL_REVERSE_PROXY_PORT}" ]; then
+    if [ -z "${SSL_REVERSE_PROXY_NAME}" -o -z "${SSL_REVERSE_PROXY_PORT}" ]; then
+        echo "ERROR: "
+        echo " Partial SSL reverse proxy configuration detected."
+        echo " Please provide complete SSL revers proxy configuration. Aborting..."
+        exit 1
+    fi
+elif [ -n "${REVERSE_PROXY_NAME}" -o -n "${REVERSE_PROXY_PORT}" ]; then
+    if [ -z "${REVERSE_PROXY_NAME}" -o -z "${REVERSE_PROXY_PORT}" ]; then
+        echo "ERROR: "
+        echo " Partial reverse proxy configuration detected."
+        echo " Please provide complete revers proxy configuration. Aborting..."
+        exit 1
+    fi
+fi
+
+if [ -n "${REVERSE_PROXY_CONTEXT_PATH}" ] && [ -z "${SSL_REVERSE_PROXY_NAME}" ] && [ -z "${REVERSE_PROXY_NAME}" ]; then
+    echo "ERROR: "
+    echo " Found reverse proxy context path but no reverse proxy configuration."
+    echo " Please only provide context path with a valid reverse proxy"
+    echo " configuration. Aborting..."
+    exit 1
+fi
+
+
+## Configure JIRA
+# Copy configuration files
+cp ${CONFIG_TEMPLATES_DIR}/${DB_TYPE}-dbconfig.xml ${JIRA_DATA_DIR}/dbconfig.xml
+cp ${CONFIG_TEMPLATES_DIR}/server.xml ${JIRA_INST_DIR}/conf/server.xml
+
+# Configure database
+sed 's/{{DB_HOST_NAME}}/'"${DB_HOST}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
+sed 's/{{DB_HOST_PORT}}/'"${DB_PORT}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
+sed 's/{{DB_NAME}}/'"${DB_NAME}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
+sed 's/{{DB_USER}}/'"${DB_USER}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
+sed 's/{{DB_PASS}}/'"${DB_PASS}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
+sed 's/{{DB_POOL}}/'"${DB_POOL}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
+
+# Configure JIRA properties
+. ${SETUP_SCRIPTS_DIR}/set_jira_application_properties
+
+startJira () {
+    # start JIRA
+    echo "Starting JIRA..."
+    ${JIRA_INST_DIR}/bin/start-jira.sh
+    while pgrep -u jira > /dev/null; do
+        sleep 1
+    done
+}
+
+sanitize () {
+    echo "Checking directories permissions..."
+    chown -R root:root $JIRA_LOGS_DIR $JIRA_TEMP_DIR $JIRA_WORK_DIR $JIRA_DATA_DIR
+}
+
+showHelp () {
+    echo "Available options:"
+    echo " jira:start     - Starts the JIRA server (default)"
+    echo " jira:sanitize  - Fix directory permissions."
+    echo " help      - Displays this help"
+    echo " [command] - Execute the specified linux command eg. bash."
+}
+
+case "$1" in
+    jira:start)
+        startJira
+        ;;
+    jira:sanitize)
+        sanitize
+        ;;
+    help)
+        showHelp
+        ;;
+    *)
+        if [ -x $1 ]; then
+            $1
+        else
+            prog=$(which $1)
+            if [ -n "${prog}" ] ; then
+                shift 1
+                echo "executing $prog"
+                $prog $@
+            else
+                help
+            fi
+        fi
+        ;;
+esac
+
+exit 0
+

@@ -1,48 +1,37 @@
-FROM java:7
+# This builds a JIRA Docker container
 
-# Configuration variables.
-ENV JIRA_HOME     /var/local/atlassian/jira
-ENV JIRA_INSTALL  /usr/local/atlassian/jira
-ENV JIRA_VERSION  6.4.2
+FROM inftec/ubuntu-java:8u45
+MAINTAINER Allan Degnan <allan@adegnan.net>
 
-# Install Atlassian JIRA and helper tools and setup initial home
-# directory structure.
-RUN set -x \
-    && apt-get update --quiet \
-    && apt-get install --quiet --yes --no-install-recommends libtcnative-1 xmlstarlet \
-    && apt-get clean \
-    && mkdir -p                "${JIRA_HOME}" \
-    && chmod -R 700            "${JIRA_HOME}" \
-    && chown -R root:root  "${JIRA_HOME}" \
-    && mkdir -p                "${JIRA_INSTALL}/conf/Catalina" \
-    && curl -Ls                "http://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-${JIRA_VERSION}.tar.gz" | tar -xz --directory "${JIRA_INSTALL}" --strip-components=1 --no-same-owner \
-    && chmod -R 700            "${JIRA_INSTALL}/conf" \
-    && chmod -R 700            "${JIRA_INSTALL}/logs" \
-    && chmod -R 700            "${JIRA_INSTALL}/temp" \
-    && chmod -R 700            "${JIRA_INSTALL}/work" \
-    && chown -R root:root      "${JIRA_INSTALL}/conf" \
-    && chown -R root:root      "${JIRA_INSTALL}/logs" \
-    && chown -R root:root      "${JIRA_INSTALL}/temp" \
-    && chown -R root:root      "${JIRA_INSTALL}/work" \
-    && echo -e                 "\njira.home=$JIRA_HOME" >> "${JIRA_INSTALL}/atlassian-jira/WEB-INF/classes/jira-application.properties"
+# These values can and should be configured
+ENV JIRA_VERSION 6.4.8
+ENV MYSQL_DRIVER_VERSION 5.1.36
 
-COPY server.xml "${JIRA_INSTALL}/conf/service.xml"
+# Install Curl
+RUN apt-get update && \
+    apt-get install -y \
+        curl && \
+    apt-get autoclean
+        
+# Install JIRA
+RUN curl -Lks http://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-${JIRA_VERSION}.tar.gz -o /root/jira.tar.gz
+RUN mkdir /opt/jira && tar xzf /root/jira.tar.gz --strip=1 -C /opt/jira && rm /root/jira.tar.gz
 
-# Use the default unprivileged account. This could be considered bad practice
-# on systems where multiple processes end up being executed by 'daemon' but
-# here we only ever run one process anyway.
-USER root:root
+# Install MYSQL Driver
+RUN curl -Lks http://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-${MYSQL_DRIVER_VERSION}.tar.gz -o /root/mysql-connector.tar.gz
+RUN tar xzf /root/mysql-connector.tar.gz --strip=1 --wildcards '*/mysql-connector-java*.jar' && \
+    mv mysql-connector-java*.jar /opt/jira/lib && \
+    rm /root/mysql-connector.tar.gz
 
-# Expose default HTTP connector port.
+# Copy assets
+COPY assets/config/ /opt/jira-setup/config/
+COPY assets/setup/ /opt/jira-setup/setup/
+COPY assets/jira.init /opt/jira-setup/jira.init
+RUN cp /opt/jira/conf/server.xml /opt/jira-setup/config/server.xml
+RUN chmod 755 /opt/jira-setup/jira.init
+
+VOLUME /opt/jira-home
 EXPOSE 8080
+ENTRYPOINT ["/opt/jira-setup/jira.init"]
+CMD ["jira:start"]
 
-# Set volume mount points for installation and home directory. Changes to the
-# home directory needs to be persisted as well as parts of the installation
-# directory due to eg. logs.
-VOLUME ["/var/local/atlassian/jira"]
-
-# Set the default working directory as the installation directory.
-WORKDIR ${JIRA_HOME}
-
-# Run Atlassian JIRA as a foreground process by default.
-CMD ["/usr/local/atlassian/jira/bin/start-jira.sh", "-fg"]

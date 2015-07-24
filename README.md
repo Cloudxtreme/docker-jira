@@ -1,141 +1,139 @@
-# Atlassian JIRA in a Docker container
+# Introduction
+This docker container provides a JIRA installation. As far as possible it's configurable through environment variables. The initialization and setup scripts are largely inspired by the superb gitlab container from sameersbn.
 
-[![Docker Build Status](http://hubstatus.container42.com/cptactionhank/atlassian-jira)](https://registry.hub.docker.com/u/cptactionhank/atlassian-jira)
-[![Build Status](https://travis-ci.org/cptactionhank/docker-atlassian-jira.svg)](https://travis-ci.org/cptactionhank/docker-atlassian-jira)
+# Versions
+## Jira
+Current Jira version: 6.4
 
-A containerized installation of Atlassian JIRA setup with a goal of keeping the installation as default as possible, but with a few Docker related twists.
+## MySQL Driver
+Current MySQL Driver Version: 5.1.34
 
-Want to help out, check out the contribution section.
+# Hardware and Software Requirements
+These are the official hardware and software requirements by Atlassian. They apply to the current version, but you should be fine running any of the older versions on this hardware.
 
-## Important changes
+## Software
+### Client
+#### Web Browser
+| Browser                     | Supported Versions                                        | Notes                                     |
+|-----------------------------|-----------------------------------------------------------|-------------------------------------------|
+| Chrome                      | Latest stable version supported                           |                                           |
+| Microsoft Internet Explorer | 9.0, 10.0, 11.0                                           | 'Compatibility View' is **not supported** |
+| Mozilla Firefox             | Latest stable version supported                           |                                           |
+| Safari                      | Latest stable version supported on Mac OS X only          |                                           |
+| Mobile Safari               | iOS, iPod touch and iPhone only --- Latest stable version |                                           |
+| Android                     | The default browser on Android 4.0.3 (Ice Cream Sandwich) |                                           |
 
-The installation directory `/usr/local/atlassian/jira` is not mounted as a volume as standard anymore. Should you need to persist changes in this directory run the container with the additional argument `--volume /usr/local/atlassian/jira`.
+### Server
+#### Java
+The correct Java version is already included in the container. Currently it runs on Java 1.8.0_40.
 
-## I'm in the fast lane! Get me started
+#### Application Server
+Jira runs on Apache Tomcat.
 
-To quickly get started with running a JIRA instance, first run the following command:
-```bash
-docker run --detach --publish 8080:8080 cptactionhank/atlassian-jira:latest
-```
+#### Database
+Jira supports most popular relational database servers. However, this container only supports MySQL. If you would like to run this container using any other database server, please let us know, so we might add the feature.
 
-Then use your browser to nagivate to `http://[dockerhost]:8080` and finish the configuration.
+## Hardware
+The hardware required to run Jira depends on a number of different JIRA configurations (eg. projects, issues, custom fields, permissions, etc.) as well as the maximum number of concurrent requests that the system will experience during peak hours. See the [Jira Sizing Guide](https://confluence.atlassian.com/display/ENTERPRISE/JIRA+Sizing+Guide) for more information.
 
-## The slower road to get started
+At an absolute minimum you will need:
 
-An assumption is made that the docker version is at least 1.3.0 for the additional methods `docker exec` and `docker create`.
+* Dual Core CPU
+* 8GB RAM
+* 10GB Disk Space
 
-This is how to create the container for running an Atlassian JIRA instance and before you run the command as is take note of the `[your settings]` which should be left out or filled to suit your needs.
+# Quickstart Guide
+To quickly run Jira using a MySQL Docker container run these commands:
 
-```bash
-docker create [your settings] cptactionhank/atlassian-jira:latest
-```
+Start MySQL
 
-Below is some documentation for additional configuration of the JIRA application, keep in mind this is the only tested configuration to suit own needs.
+```sudo docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=pw mysql
+sudo docker exec -i -t mysql /bin/bash```
 
-### Additional JIRA settings
+This will start a MySQL container and a bash terminal within. Now we can create the database scheme for Jira:
 
-Use the `CATALINA_OPTS` environment variable for changing advanced settings eg. changing memory consumption or extending plugin loading timeout. All possible configuration settings can be found at the Atlassian JIRA [documentation](https://confluence.atlassian.com/display/JIRA/Recognized+System+Properties+for+JIRA).
+```mysql -u root -ppw
+create database jira;
+exit
+exit```
 
-Use with Docker add `--env 'CATALINA_OPTS=[settings]'` as part of your container configuration flags.
+Now we can run Jira. /opt/jira-home will be linked to a docker volume. In order for Jira to be able to write to that directory, we need to change the ownership accordingly. The easiest way to do this is with a jira-data container. Jira is - by default - run as the jira user with UID:GID 5000:5000.
+The Jira container will be linked to the MySQL container. Jira will automatically detect this linked container and configure the database connection accordingly:
 
-#### JVM memory configuration
+```sudo docker run -d -v /opt/jira-home --name jira-data busybox chown -R 5000:5000 /opt/jira-home
+sudo docker run -p 8080:8080 -d --name jira --volumes-from jira-data --link mysql:mysql -e "DB_USER=root" -e "DB_PASS=pw" -e "DB_NAME=jira" inftec/jira```
 
-To change the default memory configuration to your machine with extended memory usage settings add the following string to your `CATALINA_OPTS` environment variable. This will setup the JVM to be running with 128MB as minimum and 1GB as maximum allocatable memory.
+After about 1 minute you should be able to access and configure Jira on [http://localhost:8080](http://localhost:8080)
 
-```
--Xms128m -Xmx1024m
-```
+# Configuration
+The following features can be configured through the use of environment variables.
 
-More information about [`-Xms`](http://docs.oracle.com/cd/E13150_01/jrockit_jvm/jrockit/jrdocs/refman/optionX.html#wp999528) and [`-Xmx`](http://docs.oracle.com/cd/E13150_01/jrockit_jvm/jrockit/jrdocs/refman/optionX.html#wp999527) visit [here](http://docs.oracle.com/cd/E13150_01/jrockit_jvm/jrockit/jrdocs/refman/optionX.html).
+## Data Storage
+Jira stores it's information in /opt/jira-home. You should mount a volume from the host or another docker container (see example in Quickstart Guide above). It is recommended to backup the content of this volume on a regular basis.
 
-#### Plugin loading timeout
+Volumes can be mounted to a docker container with the -v (directory in host) or the --volumes-from (volume in another docker container) option.
 
-To change the plugin loading timeout to _5 minutes_ the following string should be added to the `CATALINA_OPTS` environment variable.
+## Database connection
+Jira stores most of it's data in a database. Current this container only supports MySQL as database backend.
 
-```
--Datlassian.plugins.enable.wait=300
-```
+### External MySQL Server
+The connection to an external database server can be configured using the following environmental variables:
 
-#### Apache Portable Runtime (APR) based Native library for Tomcat
+| Variable | Description                                   | Default         | Example                 |
+|----------|-----------------------------------------------|-----------------|-------------------------|
+| DB_TYPE  | One of: mysql                                 |                 | mysql                   |
+| DB_HOST  | Hostname or IP Address of the database server |                 | localhost, 123.456.78.9 |
+| DB_PORT  | Port on which the database server listens     |                 | 3306                    |
+| DB_NAME  | Name of the database for Jira                 | jira_production | jira_production         |
+| DB_USER  | User with which to connect to the database    | jira            | jira                    |
+| DB_PASS  | Password for the user DB_USER                 |                 | some_very_secret_value  |
+| DB_POOL  | Number of database connections to open        | 20              | 30                      |
 
-This is enabled by default.
+### Linked MySQL Container
+If the container detects a linked mysql container with name "mysql" it will use that database connection. The variables DB_TYPE, DB_HOST and DB_PORT will be set to the corresponding values. MySQL needs to run on the default MySQL port 3306 in the linked container.
 
-### Running as a different user
+## Jira User
+The UID and GID of the user jira can be configured through USERMAP_UID und USERMAP_GID.
 
-Here will be information on how to run as a different user
+## Reverse Proxy
+The container supports the use of SSL and non SSL reverse proxies. When configuring a reverse proxy, both name and port are required. It is invalid to provide both SSL and non SSL proxy configuration. The context path of the reverse proxy may only be provided if a reverse proxy was configured. The context path variable is optional.
 
-```
---user "docker-user:docker-group"
-```
+The reverse proxy name should be the FQDN of Jira's base url.
 
-make sure the home directory `/var/local/atlassian/jira` is set up with full read, write, and execute permissions on the directory.
+### SSL
+SSL reverse proxy can be configured with SSL_REVERSE_PROXY_NAME and SSL_REVERSE_PROXY_PORT
 
-If not mounting the home directory volume yourself you can change the folder permissions by
+For example, if your Jira installation is reachable through https://example.com:8443/jira the variables should be set to:
 
-```bash
-$ docker exec [container] chown docker-user:docker-group /var/local/atlassian/jira
-```
+SSL_REVERSE_PROXY_NAME=example.com
+SSL_REVERSE_PROXY_PORT=8443
 
-Please note that the exec will be executed as the supplied user in the `docker create` command, ie. `docker-user:docker-group`. You can circumvent this by
+### non SSL
+Non SSL reverse proxy can be configured with REVERSE_PROXY_NAME and REVERSE_PROXY_PORT
 
-```bash
-$ docker run -ti --rm --user root:root --volumes-from [container] java:7 chown docker-user:docker-group /var/local/atlassian/jira
-```
+For example, if your Jira installation is reachable through http://example.com:8080/jira the variables should be set to:
 
-### Customizations
+SSL_REVERSE_PROXY_NAME=example.com
+SSL_REVERSE_PROXY_PORT=8080
 
-Example mounting files to change log4j logging output:
+### Context Path
+The context path of the reverse proxy can be configured with REVERSE_PROXY_CONTEXT_PATH. It should start with a `/`.
 
-```
---volume "[hostpath]/log4j.properties:/usr/local/atlassian/jira/atlassian-jira/WEB-INF/classes/log4j.properties"
-```
+In the examples above, REVERSE_PROXY_CONTEXT_PATH should be set to `/jira`.
 
-This should also be modifiable to suit your needs.
+# Quick Reference
+* **DB_TYPE**: The database type. Possible values: `mysql`
+* **DB_HOST**: The database server hostname or IP address
+* **DB_PORT**: The database server port
+* **DB_NAME**: The database name. Defaults to `jira_production`
+* **DB_USER**: The database user. Defaults to `jira`
+* **DB_PASS**: The database user's password
+* **DB_POOL**: The size of the database connection pool. Defaults to 20
+* **USERMAP_UID**: The UID of the user jira. Defaults to 5000
+* **USERMAP_GID**: The GID of the user jira. Defaults to 5000
+* **SSL_REVERSE_PROXY_NAME**: The FQDN of the reverse proxy
+* **SSL_REVERSE_PROXY_PORT**: The port on which the reverse proxy accepts connections for Jira
+* **REVERSE_PROXY_NAME**: The FQDN of the reverse proxy
+* **REVERSE_PROXY_PORT**: The port on which the reverse proxy accepts connections for Jira
+* **REVERSE_PROXY_CONTEXT_PATH**: The context path of Jira's base URL
 
-### Reverse Proxy Support
-
-You need to change the `/usr/local/atlassian/jira/conf/server.xml` file inside the container to include a couple of Connector [attributes](http://tomcat.apache.org/tomcat-8.0-doc/config/http.html#Proxy_Support).
-
-Gaining access to the `server.xml` file on a running container use the following docker command edited to suit your setup
-
-```bash
-$ docker run -ti --rm --volumes-from <container> ubuntu:latest vi /usr/local/atlassian/jira/conf/server.xml
-```
-
-Within this container the file can be accessed and edited to match your configuration (remember to restart the JIRA container after).
-
-#### HTTP
-
-For a reverse proxy server listening on port 80 (HTTP) for inbound connections add and edit the following connector attributes to suit your setup.
-
-```xml
-<connector ...
-   proxyName="example.com"
-   proxyPort="80"
-   scheme="http"
-   ...
-></connector>
-```
-
-#### HTTPS
-
-For a reverse proxy server listening on port 443 (HTTPS) for inbound connections add and edit the following connector attributes to suit your setup.
-
-```xml
-<connector ...
-   proxyName="example.com"
-   proxyPort="443"
-   scheme="https"
-   ...
-></connector>
-```
-
-## Contributions
-[![Docker Build Status](http://hubstatus.container42.com/cptactionhank/atlassian-jira)](https://registry.hub.docker.com/u/cptactionhank/atlassian-jira)
-[![Build Status](https://travis-ci.org/cptactionhank/docker-atlassian-jira.svg)](https://travis-ci.org/cptactionhank/docker-atlassian-jira)
-
-This has been made with the best intentions and current knowledge so it shouldn't be expected to be flawless. However you can support this too with best practices and other additions. Travis-CI has been setup to build the Dockerfile and run acceptance tests on the application image to ensure it is tested and working.
-
-Out of date documentation, version, lack of tests, etc. why not help out by either creating an issue and open a discussion or sending a pull request with modifications.
-
-Acceptance tests are performed by Travis-CI in Ruby using the RSpec framework.

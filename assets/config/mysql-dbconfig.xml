@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+<jira-database-config>
+  <name>defaultDS</name>
+  <delegator-name>default</delegator-name>
+  <database-type>mysql</database-type>
+  <jdbc-datasource>
+    <url>jdbc:mysql://{{DB_HOST_NAME}}:{{DB_HOST_PORT}}/{{DB_NAME}}?useUnicode=true&amp;characterEncoding=UTF8&amp;sessionVariables=storage_engine=InnoDB</url>
+    <driver-class>com.mysql.jdbc.Driver</driver-class>
+    <username>{{DB_USER}}</username>
+    <password>{{DB_PASS}}</password>
+    <pool-min-size>{{DB_POOL}}</pool-min-size>
+    <pool-max-size>{{DB_POOL}}</pool-max-size>
+    <pool-max-wait>30000</pool-max-wait>
+    <pool-max-idle>20</pool-max-idle>
+    <pool-remove-abandoned>true</pool-remove-abandoned>
+    <pool-remove-abandoned-timeout>300</pool-remove-abandoned-timeout>
+ 
+    <validation-query>select 1</validation-query>
+    <min-evictable-idle-time-millis>60000</min-evictable-idle-time-millis>
+    <time-between-eviction-runs-millis>300000</time-between-eviction-runs-millis>
+   
+    <pool-test-on-borrow>false</pool-test-on-borrow>
+    <pool-test-while-idle>true</pool-test-while-idle>
+    <validation-query-timeout>3</validation-query-timeout>
+  </jdbc-datasource>
+</jira-database-config>
