@@ -115,7 +115,7 @@ startJira () {
     # start JIRA
     echo "Starting JIRA..."
     ${JIRA_INST_DIR}/bin/start-jira.sh
-    while pgrep -u jira > /dev/null; do
+    while pgrep -u root > /dev/null; do
         sleep 1
     done
 }
