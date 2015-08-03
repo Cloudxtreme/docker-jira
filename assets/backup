@@ -24,7 +24,7 @@ tar zcvf ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz ${JIRA_HOME}/data ${BACKUP_PATH
 
 # encrypt tar and send that to s3
 gpg --encrypt ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz ${GPG_BACKUP_ENCRYPTION_UID}
-aws s3 cp ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz.gpg s3://${AWS_BUCKET_NAME}/${TIMESTAMP}_data.tar.gz.gpg
+aws s3 cp ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz.gpg s3://${AWS_BACKUP_BUCKET}/${TIMESTAMP}_data.tar.gz.gpg
 
 # Double make sure before we're not gonna delete root or something.
 if [ ! -d "${BACKUP_PATH}" ]

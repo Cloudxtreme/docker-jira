@@ -121,7 +121,7 @@ if [ ${GPG_BACKUP_ENCRYPTION_UID:+1} ]; then
   /sbin/trust-gpg "${GPG_BACKUP_ENCRYPTION_UID}" 6
 fi
 # Setup cron
-if [ ${GPG_BACKUP_ENCRYPTION_ENABLED:+1} ]; then
+if [ ${AWS_BACKUPS:+1} ]; then
   echo "0 */2 * * * root /usr/local/bin/backup" > /etc/crontab
 fi
 
