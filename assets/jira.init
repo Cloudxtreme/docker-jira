@@ -118,7 +118,7 @@ if [ ${GPG_BACKUP_ENCRYPTION_PUBLIC_KEY:+1} ]; then
 fi
 if [ ${GPG_BACKUP_ENCRYPTION_UID:+1} ]; then
   echo 'trusting keys'
-  /sbin/trust-gpg "${GPG_BACKUP_ENCRYPTION_UID}" 6
+  /usr/local/bin/trust-gpg "${GPG_BACKUP_ENCRYPTION_UID}" 6
 fi
 # Setup cron
 if [ ${AWS_BACKUPS:+1} ]; then

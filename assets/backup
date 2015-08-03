@@ -1,7 +1,8 @@
 #!/bin/bash
 
 TIMESTAMP=$(date +%s)
-BACKUP_PATH=/opt/backup
+JIRA_HOME="/opt/jira-home"
+BACKUP_PATH="/opt/backup"
 
 # check we're not already running.
 if [ -a "${BACKUP_PATH}/.lock" ]; then
@@ -32,4 +33,4 @@ if [ ! -d "${BACKUP_PATH}" ]; then
   exit 1;
 fi
 
-rm -rf "${BACKUP_PATH:?}/*"
+rm -rf "${BACKUP_PATH:?}"
