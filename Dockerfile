@@ -10,7 +10,7 @@ ENV MYSQL_DRIVER_VERSION 5.1.36
 # Install Curl
 RUN apt-get update && \
     apt-get install -y \
-        curl && \
+        curl mysql-client awscli supervisor && \
     apt-get autoclean
         
 # Install JIRA
@@ -27,8 +27,12 @@ RUN tar xzf /root/mysql-connector.tar.gz --strip=1 --wildcards '*/mysql-connecto
 COPY assets/config/ /opt/jira-setup/config/
 COPY assets/setup/ /opt/jira-setup/setup/
 COPY assets/jira.init /opt/jira-setup/jira.init
+COPY assets/backup /usr/local/bin/backup
+COPY assets/trust-gpg /usr/local/bin/trust-gpg
 RUN cp /opt/jira/conf/server.xml /opt/jira-setup/config/server.xml
 RUN chmod 755 /opt/jira-setup/jira.init
+RUN chmod 755 /usr/local/bin/backup
+RUN chmod 755 /usr/local/bin/trust-gpg
 
 VOLUME /opt/jira-home
 EXPOSE 8080

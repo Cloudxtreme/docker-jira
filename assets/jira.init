@@ -111,9 +111,25 @@ sed 's/{{DB_POOL}}/'"${DB_POOL}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
 # Configure JIRA properties
 . ${SETUP_SCRIPTS_DIR}/set_jira_application_properties
 
+# Configure GPG
+if [ ${GPG_BACKUP_ENCRYPTION_PUBLIC_KEY:+1} ]; then
+  echo 'adding pub key'
+  echo "${GPG_BACKUP_ENCRYPTION_PUBLIC_KEY}" | gpg --import
+fi
+if [ ${GPG_BACKUP_ENCRYPTION_UID:+1} ]; then
+  echo 'trusting keys'
+  /sbin/trust-gpg "${GPG_BACKUP_ENCRYPTION_UID}" 6
+fi
+# Setup cron
+if [ ${GPG_BACKUP_ENCRYPTION_ENABLED:+1} ]; then
+  echo "0 */2 * * * root /usr/local/bin/backup" > /etc/crontab
+fi
+
 startJira () {
     # start JIRA
     echo "Starting JIRA..."
+
+    /usr/sbin/cron
     ${JIRA_INST_DIR}/bin/start-jira.sh
     while pgrep -u root > /dev/null; do
         sleep 1

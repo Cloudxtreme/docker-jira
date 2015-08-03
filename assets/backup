@@ -1,0 +1,35 @@
+#!/bin/bash
+
+TIMESTAMP=$(date +%s)
+BACKUP_PATH=/opt/backup
+
+# check we're not already running.
+if [ -a "${BACKUP_PATH}/.lock" ]
+  echo "Seems like we're already running.  Remove ${BACKUP_PATH}/.lock if this is incorrect"
+  exit 1
+fi
+
+mkdir -p ${BACKUP_PATH}
+touch ${BACKUP_PATH}/.lock
+
+# make sure backup folder exists
+if [ ! -d "${BACKUP_PATH}" ]
+  echo "Aborting as BACKUP_PATH doesn't exist or isn't set: ${BACKUP_PATH}"
+  exit 1;
+fi
+
+# get copy of database and jira_home/data
+mysql -h ${DB_HOST} -u ${DB_USER} -p${DB_PASS} ${DB_NAME} > ${BACKUP_PATH}/mysqldump.sql
+tar zcvf ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz ${JIRA_HOME}/data ${BACKUP_PATH}/mysqldump.sql
+
+# encrypt tar and send that to s3
+gpg --encrypt ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz ${GPG_BACKUP_ENCRYPTION_UID}
+aws s3 cp ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz.gpg s3://mybucket/${TIMESTAMP}_data.tar.gz.gpg
+
+# Double make sure before we're not gonna delete root or something.
+if [ ! -d "${BACKUP_PATH}" ]
+  echo "Aborting as BACKUP_PATH doesn't exist or isn't set: ${BACKUP_PATH}"
+  exit 1;
+fi
+
+rm -rf ${BACKUP_PATH}/*
