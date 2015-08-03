@@ -20,7 +20,7 @@ if [ ! -d "${BACKUP_PATH}" ]; then
 fi
 
 # get copy of database and jira_home/data
-mysql -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" --result-file="${BACKUP_PATH}/mysqldump.sql"
+mysqldump -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" --result-file="${BACKUP_PATH}/mysqldump.sql"
 sleep 1
 tar zcvf "${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz" "${JIRA_HOME}/data" "${BACKUP_PATH}/mysqldump.sql"
 
