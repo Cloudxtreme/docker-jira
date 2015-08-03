@@ -109,7 +109,7 @@ sed 's/{{DB_PASS}}/'"${DB_PASS}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
 sed 's/{{DB_POOL}}/'"${DB_POOL}"'/' -i ${JIRA_DATA_DIR}/dbconfig.xml
 
 # Configure JIRA properties
-. ${SETUP_SCRIPTS_DIR}/set_jira_application_properties
+${SETUP_SCRIPTS_DIR}/set_jira_application_properties
 
 # Configure GPG
 if [ ${GPG_BACKUP_ENCRYPTION_PUBLIC_KEY:+1} ]; then
@@ -122,6 +122,7 @@ if [ ${GPG_BACKUP_ENCRYPTION_UID:+1} ]; then
 fi
 # Setup cron
 if [ ${AWS_BACKUPS:+1} ]; then
+  echo 'adding backup cron'
   echo "0 */2 * * * root /usr/local/bin/backup" > /etc/crontab
 fi
 
