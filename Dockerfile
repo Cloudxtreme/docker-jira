@@ -30,6 +30,7 @@ COPY assets/jira.init /opt/jira-setup/jira.init
 COPY assets/backup /usr/local/bin/backup
 COPY assets/trust-gpg /usr/local/bin/trust-gpg
 RUN cp /opt/jira/conf/server.xml /opt/jira-setup/config/server.xml
+RUN chmod 755 /opt/jira-setup/setup/set_jira_application_properties
 RUN chmod 755 /opt/jira-setup/jira.init
 RUN chmod 755 /usr/local/bin/backup
 RUN chmod 755 /usr/local/bin/trust-gpg
