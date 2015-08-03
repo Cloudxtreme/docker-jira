@@ -1,5 +1,13 @@
 #!/bin/bash
 
+## Basic variables
+JIRA_HOME="/home/jira"
+JIRA_DATA_DIR="/opt/jira-home"
+JIRA_INST_DIR="/opt/jira"
+JIRA_LOGS_DIR="${JIRA_INST_DIR}/logs"
+JIRA_TEMP_DIR="${JIRA_INST_DIR}/temp"
+JIRA_WORK_DIR="${JIRA_INST_DIR}/work"
+
 echo "jira.home=$JIRA_DATA_DIR" > /opt/jira/atlassian-jira/WEB-INF/classes/jira-application.properties
 
 # Configure reverse proxy
