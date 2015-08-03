@@ -23,7 +23,7 @@ mysql -h "${DB_HOST}" -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" > "${BACKUP_PA
 tar zcvf "${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz" "${JIRA_HOME}/data ${BACKUP_PATH}/mysqldump.sql"
 
 # encrypt tar and send that to s3
-gpg --encrypt ${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz ${GPG_BACKUP_ENCRYPTION_UID}
+gpg --encrypt "${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz" "${GPG_BACKUP_ENCRYPTION_UID}"
 aws s3 cp "${BACKUP_PATH}/${TIMESTAMP}_data.tar.gz.gpg" "s3://${AWS_BACKUP_BUCKET}/${TIMESTAMP}_data.tar.gz.gpg"
 
 # Double make sure before we're not gonna delete root or something.
@@ -32,4 +32,4 @@ if [ ! -d "${BACKUP_PATH}" ]; then
   exit 1;
 fi
 
-rm -rf ${BACKUP_PATHi:?}/*
+rm -rf "${BACKUP_PATHi:?}/*"
