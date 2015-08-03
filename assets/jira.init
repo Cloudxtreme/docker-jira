@@ -126,6 +126,8 @@ if [ ${AWS_BACKUPS:+1} ]; then
   echo "0 */2 * * * root /usr/local/bin/backup" > /etc/crontab
 fi
 
+env >> /etc/environment
+
 startJira () {
     # start JIRA
     echo "Starting JIRA..."
