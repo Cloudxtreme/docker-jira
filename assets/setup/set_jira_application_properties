@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sudo -u jira -H echo "jira.home=$JIRA_DATA_DIR" > /opt/jira/atlassian-jira/WEB-INF/classes/jira-application.properties
+echo "jira.home=$JIRA_DATA_DIR" > /opt/jira/atlassian-jira/WEB-INF/classes/jira-application.properties
 
 # Configure reverse proxy
 if [ -n "$REVERSE_PROXY_CONTEXT_PATH" ]; then
