@@ -126,7 +126,15 @@ if [ ${AWS_BACKUPS:+1} ]; then
   echo "0 */2 * * * root /usr/local/bin/backup" > /etc/crontab
 fi
 
-env >> /etc/environment
+echo "DB_NAME='${DB_NAME}'" >> /etc/environment
+echo "DB_PASS='${DB_PASS}'" >> /etc/environment
+echo "DB_HOST='${DB_HOST}'" >> /etc/environment
+echo "DB_USER='${DB_USER}'" >> /etc/environment
+echo "GPG_BACKUP_ENCRYPTION_UID='${GPG_BACKUP_ENCRYPTION_UID}'" >> /etc/environment
+echo "AWS_BACKUP_BUCKET='${AWS_BACKUP_BUCKET}'" >> /etc/environment
+echo "AWS_REGION='${AWS_REGION}'" >> /etc/environment
+echo "AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID}'" >> /etc/environment
+echo "AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}'" >> /etc/environment
 
 startJira () {
     # start JIRA
