@@ -4,7 +4,7 @@ TIMESTAMP=$(date +%s)
 BACKUP_PATH=/opt/backup
 
 # check we're not already running.
-if [ -a "${BACKUP_PATH}/.lock" ]
+if [ -a "${BACKUP_PATH}/.lock" ]; then
   echo "Seems like we're already running.  Remove ${BACKUP_PATH}/.lock if this is incorrect"
   exit 1
 fi
@@ -13,7 +13,7 @@ mkdir -p ${BACKUP_PATH}
 touch ${BACKUP_PATH}/.lock
 
 # make sure backup folder exists
-if [ ! -d "${BACKUP_PATH}" ]
+if [ ! -d "${BACKUP_PATH}" ]; then
   echo "Aborting as BACKUP_PATH doesn't exist or isn't set: ${BACKUP_PATH}"
   exit 1;
 fi
