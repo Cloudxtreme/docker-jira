@@ -61,7 +61,7 @@ Now we can run Jira. /opt/jira-home will be linked to a docker volume. In order 
 The Jira container will be linked to the MySQL container. Jira will automatically detect this linked container and configure the database connection accordingly:
 
 ```sudo docker run -d -v /opt/jira-home --name jira-data busybox chown -R 5000:5000 /opt/jira-home
-sudo docker run -p 8080:8080 -d --name jira --volumes-from jira-data --link mysql:mysql -e "DB_USER=root" -e "DB_PASS=pw" -e "DB_NAME=jira" inftec/jira```
+sudo docker run -p 8080:8080 -d --name jira --volumes-from jira-data --link mysql:mysql -e "DB_USER=root" -e "DB_PASS=pw" -e "DB_NAME=jira" quay.io/ukhomeofficedigital/docker-jira```
 
 After about 1 minute you should be able to access and configure Jira on [http://localhost:8080](http://localhost:8080)
 
