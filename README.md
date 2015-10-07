@@ -1,4 +1,7 @@
 # Introduction
+
+[![Build Status](https://travis-ci.org/UKHomeOffice/docker-jira.svg?branch=master)](https://travis-ci.org/UKHomeOffice/docker-jira)
+
 This docker container provides a JIRA installation. As far as possible it's configurable through environment variables. The initialization and setup scripts are largely inspired by the superb gitlab container from sameersbn.
 
 # Versions
